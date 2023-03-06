@@ -1,2 +1,2 @@
 # SQL-queries
-Consultas SQL de varias bases de datos
+Consultas SQL de varias bases de datos que se encuentran por internet

@@ -34,15 +34,10 @@
 				nombra el campo como num_murcia 
 			</descq>
 			<resppropo>
-				select count(*) as num_murcia
+				select count(a.nre) as num_murcia
 				from alumno a 
 				inner join codigopostal c on a.cp = c.cp 
 				where c.poblacion = "Murcia";
-				<!-->ALUMNOS DIFERENTES DE MURCIA??????-->
-				select count(*) as num_murcia
-				from alumno a 
-				inner join codigopostal c on a.cp = c.cp 
-				where c.poblacion != "Murcia";
 			</resppropo>
 			<respcorr>
 			</respcorr>
@@ -91,9 +86,10 @@
 				'Edificio B'. LLama al campo num_asig.
 			</descq>
 			<resppropo>
-				select /*distinct*/ count(*) as num_asig
+				select count(distinct a.cod_asignatura) as num_asig
 				from imparte i
 				inner join edificio e on i.cod_edificio = e.cod_edificio
+				inner join asignatura a on a.cod_asignatura = i.cod_asig 
 				where e.nombre = "Edificio B";
 			</resppropo>
 			<respcorr>
@@ -108,7 +104,7 @@
 				Llama al campo como num_alum.
 			</descq>
 			<resppropo>
-				select /*distinct*/ count(*) as num_alum
+				select count(distinct a.nre) as num_alum
 				from alumno a 
 				inner join matricula m on a.nre = m.nre 
 				where (m.anyo = 2007 or m.anyo = 2009) and 
@@ -129,7 +125,8 @@
 				select CONCAT_WS(' ', p.nombre, p.apellido1, p.apellido2) as nom_apell, d.nombre 
 				from departamento d 
 				inner join profesor p on p.cod_departamento = d.cod_departamento
-				where d.nombre = 'Sistemas';
+				where d.nombre = 'Sistemas'
+				order by nom_apell;
 			</resppropo>
 			<respcorr>
 			</respcorr>
@@ -144,17 +141,13 @@
 				ordenalo alfabéticamente por apellido1, apellido2 y nombre. Ayuda: 67 filas
 			</descq>
 			<resppropo>
-			<!-->PUEDE ESTAR MAL-->
-				select a.nombre, a.apellido1, a.apellido2, asirr.descripcion, m.nota 
+				select a.nombre, a.apellido1, a.apellido2, asi.descripcion, m.nota 
 				from alumno a 
 				inner join matricula m on a.nre = m.nre 
-				inner join asignatura asirr on asirr.cod_asignatura = m.cod_asig
-				group by m.nre, a.nombre, a.apellido1, a.apellido2, asirr.descripcion, m.nota
-				having m.nota >= all(select avg(m2.nota) 
-					from alumno a2 
-					inner join matricula m2 on a2.nre = m2.nre 
-					inner join asignatura asi2 on asi2.cod_asignatura = m2.cod_asig
-					where asi2.cod_asignatura = asirr.cod_asignatura 
+				inner join asignatura asi on asi.cod_asignatura = m.cod_asig
+				where asi.descripcion = (select asi2.descripcion from matricula m2 inner join asignatura asi2 on 
+					asi2.cod_asignatura = m2.cod_asig inner join alumno a2 on a2.nre = m2.nre 
+					where asi2.cod_asignatura = asi.cod_asignatura
 					group by asi2.cod_asignatura
 					having avg(m2.nota) >= 5.6);
 			</resppropo>
@@ -172,14 +165,16 @@
 				Ordenalo por codigo de asignatura. Ayuda 31 filas
 			</descq>
 			<resppropo>
-				select distinct asi.cod_asignatura, asi.descripcion
-				from asignatura asi inner join imparte i on i.cod_asig = asi.cod_asignatura
-				where i.cod_edificio in
-					(select e.cod_edificio from edificio e where (i.anyo = 2007 or i.anyo = 2010) 
-					and e.nombre = "Edificio A")
-					or i.cod_edificio in 
-					(select e2.cod_edificio from edificio e2 where (i.anyo = 2007 or i.anyo = 2010) 
-						and e2.nombre = "Edificio B");
+				select asi.descripcion, a.nombre, a.apellido1, a.apellido2, round(DATEDIFF(CURRENT_DATE(),a.fecha_nac)/365) as eedad, m.nota 
+				from alumno a inner join matricula m on a.nre = m.nre 
+				inner join asignatura asi on asi.cod_asignatura = m.cod_asig
+				where m.nota = (select min(m2.nota) from matricula m2 
+								inner join asignatura asi2 on asi2.cod_asignatura = m2.cod_asig 
+								inner join alumno a2 on a2.nre = m2.nre
+								where asi.cod_asignatura = asi2.cod_asignatura)
+				group by a.nre, asi.descripcion, a.nombre, a.apellido1, a.apellido2, m.nota
+				having eedad > 48
+				order by a.apellido1, a.apellido2, a.nombre, eedad asc;
 			</resppropo>
 			<respcorr>
 			</respcorr>
@@ -194,14 +189,13 @@
 				(como nota_media) ordenados por nota media
 			</descq>
 			<resppropo>
-			<!-- REVISAR -->
 				select d.cod_departamento, d.nombre, avg(m.nota) as nota_media
 				from departamento d 
 				inner join profesor p on d.cod_departamento = p.cod_departamento 
 				inner join imparte i on i.nrp_profesor = p.nrp 
 				inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
 				inner join matricula m on m.cod_asig = asi.cod_asignatura 
-				where i.anyo = 2008 or i.anyo = 2009
+				where (i.anyo = 2008 or i.anyo = 2009) and (m.anyo = 2008 or m.anyo = 2009)
 				group by d.cod_departamento, d.nombre
 				order by nota_media;
 			</resppropo>
@@ -219,6 +213,12 @@
 				ordenalos por nrp. Ayuda: 12 filas
 			</descq>
 			<resppropo>
+				select p.nrp, p.dni, avg(m.nota) as nota_media
+				from profesor p inner join imparte i on i.nrp_profesor = p.nrp 
+				inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
+				inner join matricula m on m.cod_asig = asi.cod_asignatura
+				group by p.nrp 
+				having nota_media >= 5;
 			</resppropo>
 			<respcorr>
 			</respcorr>
@@ -230,11 +230,23 @@
 -->
 		<query id="12" peso="5">
 			<descq>
-	                     Hallar descripcion de asignatura, nombre, apellidos, edad en años (como edad) y nota, de aquellos alumnos 
-que han obtenio la mínima nota en cada asignatura. Muestra descripcion de asignatura, nombre, apellidos, edad y nota. Ordenalos alfabéticamente por alumno y por edad de menor a mayor.Incluye solo
-los que sean mayores de 48 años, incluye duplicados si existen. Ayuda: 48 filas.
+				Hallar descripcion de asignatura, nombre, apellidos, edad en años (como edad) y nota, 
+				de aquellos alumnos 
+				que han obtenio la mínima nota en cada asignatura. Muestra descripcion de asignatura, 
+				nombre, apellidos, edad y nota. Ordenalos alfabéticamente por alumno y por 
+				edad de menor a mayor.Incluye solo
+				los que sean mayores de 48 años, incluye duplicados si existen. Ayuda: 48 filas.
 			</descq>
 			<resppropo>
+				select asi.descripcion, a.nombre, a.apellido1, a.apellido2, DATEDIFF(CURRENT_DATE(),a.fecha_nac)/365 as edad, m.nota 
+				from alumno a inner join matricula m on a.nre = m.nre 
+				inner join asignatura asi on asi.cod_asignatura = m.cod_asig
+				where m.nota = (select min(m2.nota) from matricula m2 
+								inner join asignatura asi2 on asi2.cod_asignatura = m2.cod_asig 
+								inner join alumno a2 on a2.nre = m2.nre
+								where asi.cod_asignatura = asi2.cod_asignatura)
+								and DATEDIFF(CURRENT_DATE(),a.fecha_nac)/365 > 48
+				group by a.nre, asi.descripcion, a.nombre, a.apellido1, a.apellido2, edad,m.nota;
 			</resppropo>
 			<respcorr>
 			</respcorr>
@@ -243,7 +255,10 @@ los que sean mayores de 48 años, incluye duplicados si existen. Ayuda: 48 filas
 		</query>
 		<query id="13" peso="5">
 			<descq>
-	         Hallar para cada asignatura la descripcion de la asignatura nombre y apellidos y edad en años (como edad) del/los alumno/s de menor edad matriculado/s en esa asignatura. Ordenalos alfabéticamente por alumno y por edad de menor a mayor. Incluye solo los que sean menores de 30 años. SIN INCLUIR DUPLICADOS. Ayuda: 90 filas, 5 alumnos.
+	         Hallar para cada asignatura la descripcion de la asignatura nombre y apellidos y edad en 
+	         años (como edad) del/los alumno/s de menor edad matriculado/s en esa asignatura. 
+	         Ordenalos alfabéticamente por alumno y por edad de menor a mayor. I
+	         ncluye solo los que sean menores de 30 años. SIN INCLUIR DUPLICADOS. Ayuda: 90 filas, 5 alumnos.
 			</descq>
 			<resppropo>
 			</resppropo>
@@ -254,9 +269,25 @@ los que sean mayores de 48 años, incluye duplicados si existen. Ayuda: 48 filas
 		</query>
 		<query id="14" peso="5">
 			<descq>
-                Hallar para cada departamento, nombre de departamento, nombre y apellidos del/los profesores y nota media (como nota_media) que hayan calificado de media por debajo de la nota media para ese departamento. Ordénalo por nombre de departamento y luego alfabéticamente por profesor. Ayuda: 12 filas (si salen 15 filas está casi correcto)
+                Hallar para cada departamento, nombre de departamento, nombre y apellidos del/los profesores 
+                y nota media (como nota_media) que hayan calificado de media por debajo de la nota media 
+                para ese departamento. Ordénalo por nombre de departamento y luego alfabéticamente por 
+                profesor. Ayuda: 12 filas (si salen 15 filas está casi correcto)
 			</descq>
 			<resppropo>
+				select d.nombre, p.nombre, p.apellido1, p.apellido2, avg(m.nota) as nota_media
+				from departamento d inner join profesor p on p.cod_departamento = d.cod_departamento 
+				inner join imparte i on i.nrp_profesor = p.nrp 
+				inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
+				inner join matricula m on m.cod_asig = asi.cod_asignatura
+				group by d.cod_departamento, d.nombre, p.nombre, p.apellido1, p.apellido2
+				having nota_media < any(
+								select avg(m2.nota) from departamento d2 
+								inner join profesor p2 on p2.cod_departamento = d2.cod_departamento 
+								inner join imparte i2 on i2.nrp_profesor = p2.nrp 
+								inner join asignatura asi2 on asi2.cod_asignatura = i2.cod_asig 
+								inner join matricula m2 on m2.cod_asig = asi2.cod_asignatura
+								where d.cod_departamento = d2.cod_departamento);
 			</resppropo>
 			<respcorr>
 			</respcorr>

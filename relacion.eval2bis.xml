@@ -1,0 +1,266 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<relacionsql numrelacion="REVAL2.EVAL2">
+	<configdb>
+		<hostdb>r2d2</hostdb>
+		<esquemadb>instituto</esquemadb>
+		<usuariodb>instituto</usuariodb>
+		<passdb>instituto</passdb>
+	</configdb>
+	<student>
+		<alumno>SANCHEZ GARCIA MIGUEL</alumno>
+		<finalgrade>0</finalgrade>
+		<totalgrade>0</totalgrade>
+		<maxgrade>30</maxgrade>
+	</student>
+	<consultas>
+		<query id="1" peso="1">
+			<descq>
+				Hallar un listado de los 25 primeros alumnos con nombre y apellidos ordenados por apellido1,apellido2 y 
+				nombre alfabéticamente  (se puede utilizar limit)
+			</descq>
+			<resppropo>
+				select a.nombre,a.apellido1,a.apellido2 
+				from alumno a
+				order by a.apellido1,a.apellido2, a.nombre
+				limit 25;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="2" peso="1">
+			<descq>Hallar el nº total de profesores diferentes de la población Murcia, nombra el campo como num_murcia  </descq>
+			<resppropo>
+				select count(distinct p.nrp) as num_murcia
+				from profesor p inner join codigopostal c on c.cp = p.cp 
+				where c.poblacion = "Murcia";
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="3" peso="1">
+			<descq>Hallar la nota media (redondeado con 1 decimal), nota máxima y 
+			nota mínima de todas las matriculas de 2010 a 2015. Nombra los campos como nota_media, nota_max y nota_min</descq>
+			<resppropo>
+				select avg(m.nota) as nota_media, max(m.nota) as nota_max, min(m.nota) as nota_min
+				from matricula m 
+				where m.anyo between 2010 and 2015;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="4" peso="2">
+			<descq>
+				 Hallar las dos primeras iniciales del nombre y apellidos concatenados con un guión y en minúsculas 
+				 (Ejemplo: ca-re-du) de los alumnos que se hayan matriculado en módulos en 
+				 cuya descripcion aparezca la palabra 'datos'. Denomina al campo como iniciales. 
+				 Ordenalo por ese campo obtenido y quita los duplicados.
+			</descq>
+			<resppropo>
+				select distinct lower(CONCAT_WS('-', SUBSTRING(a.nombre,1,2), SUBSTRING(a.apellido1,1,2), SUBSTRING(a.apellido2,1,2))) as iniciales
+				from alumno a inner join matricula m on m.nre = a.nre 
+				inner join asignatura asi on asi.cod_asignatura = m.cod_asig 
+				where asi.descripcion like '%datos%'
+				order by iniciales;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="5" peso="2">
+			<descq> Hallar el nº de asignaturas diferentes que se han impartido en el 'Edificio B' o en el 'Edificio C', 
+			pero solo en el año 2010. LLama al campo num_asig.
+			</descq>
+			<resppropo>
+				select count(distinct asi.cod_asignatura) as num_asig
+				from asignatura asi inner join imparte i on asi.cod_asignatura = i.cod_asig 
+				inner join edificio e on e.cod_edificio = i.cod_edificio
+				where (e.nombre = "Edificio B" or e.nombre = "Edificio C") and i.anyo = 2010;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="6" peso="2">
+			<descq>Hallar el numero de profesores diferentes que hayan impartido en el año 2008 o 2010 
+			pero que tengan actualmente 45 años o más. Llama al campo como num_prof.
+			</descq>
+			<resppropo>
+				select count(distinct p.nrp) as num_prof
+				from profesor p inner join imparte i on i.nrp_profesor = p.nrp 
+				where (i.anyo = 2008 or i.anyo = 2010) and
+				DATEDIFF(CURRENT_DATE(), p.fecha_nac)/365 > 45;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="7" peso="3">
+			<descq>
+				 Hallar el nombre y apellidos concatenados con espacios (como nom_apell)) y 
+				 nombre de departamento de los profesores del departamento de sistemas que hayan impartido mas 
+				 de 3 asignaturas. Ordenalos por el campo nom_apell.
+			</descq>
+			<resppropo>
+				select CONCAT_WS(' ', p.nombre, p.apellido1, p.apellido2) as nom_apell, d.nombre 
+				from departamento d inner join profesor p on p.cod_departamento = d.cod_departamento 
+				inner join imparte i on i.nrp_profesor = p.nrp 
+				where d.nombre = "Sistemas"
+				group by i.nrp_profesor 
+				having COUNT(i.nrp_profesor) > 3
+				order by nom_apell;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="8" peso="3">
+			<descq>Hallar los nombres y apellidos de los alumnos, junto con el nombre de asignaturas y 
+			notas obtenidas en éstas pero solo de aquellas asignaturas dónde la nota media de todos los alumnos 
+				sea >=5.6 para esa asignatura
+				ordenalo alfabéticamente por apellido1, apellido2 y nombre. Ayuda: 67 filas</descq>
+			<resppropo>
+				select a.nombre, a.apellido1, a.apellido2, asi.descripcion, m.nota
+				from alumno a inner join matricula m on m.nre = a.nre 
+				inner join asignatura asi on asi.cod_asignatura = m.cod_asig 
+				where asi.descripcion =(
+					select asi2.descripcion 
+					from asignatura asi2 inner join matricula m2 
+					on m2.cod_asig = asi2.cod_asignatura inner join alumno a2 
+					on a2.nre = m2.nre
+					where asi2.cod_asignatura = asi.cod_asignatura 
+					group by asi2.cod_asignatura
+					having avg(m2.nota) >= 5.6)
+					order by a.apellido1, a.apellido2, a.nombre;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		
+		<query id="9" peso="3">
+			<descq>Hallar codigo de asignatura y descripcion, sin duplicados, 
+			de aquellas asignaturas que se impartieron en el Edificio A o Edificio B pero en los años 2010 o 2007  
+			utiliza al menos una subconsulta para la reunión de dos tablas. Ordenalo por codigo de asignatura. Ayuda 31 filas</descq>
+			<resppropo>
+				select distinct asi.cod_asignatura, asi.descripcion 
+				from asignatura asi inner join imparte i on i.cod_asig = asi.cod_asignatura 
+				where i.cod_edificio = 
+					(select cod_edificio from edificio e where (i.anyo = 2007 or i.anyo = 2010) and e.nombre = "Edificio A")
+					or i.cod_edificio =
+					(select cod_edificio from edificio e where (i.anyo = 2007 or i.anyo = 2010) and e.nombre = "Edificio B")
+				order by asi.cod_asignatura;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="10" peso="3">
+			<descq>Hallar la nota media por cada departamento considerando las notas de 2008 
+y 2009 solamente (impartidas y matriculadas). 
+Muestra codigo de departamento, nombre de departamento y nota media (como nota_media) ordenados por nota media. 
+Ayuda ninguna nota media supera 5,02</descq>
+			<resppropo>
+				select d.cod_departamento, d.nombre, avg(m.nota) as nota_media
+				from departamento d inner join profesor p on p.cod_departamento = d.cod_departamento 
+				inner join imparte i on i.nrp_profesor = p.nrp
+				inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
+				inner join matricula m on m.cod_asig = asi.cod_asignatura
+				where (i.anyo = 2008 or i.anyo = 2009) and (m.anyo = 2008 or m.anyo = 2009) and i.anyo = m.anyo 
+				group by d.cod_departamento
+				order by nota_media;
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+
+		<query id="11" peso="4">
+			<descq>Hallar nombre y apellidos de profesores que hayan impartido alguna vez
+alguna asignatura cuya nota media sea menor que la media total del instituto. 
+Quita duplicados y ordenalos alfabeticamente por profesor. </descq>
+			<resppropo>
+				<![CDATA[
+					select distinct p.nombre, p.apellido1, p.apellido2
+					from profesor p inner join imparte i ON p.nrp = i.nrp_profesor 
+					inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
+					inner join matricula m on m.cod_asig = asi.cod_asignatura
+					group by asi.cod_asignatura, i.nrp_profesor
+					having avg(m.nota) < any(select avg(m2.nota) from profesor p2 inner join imparte i2 ON p2.nrp = i2.nrp_profesor 
+					inner join asignatura asi2 on asi2.cod_asignatura = i2.cod_asig 
+					inner join matricula m2 on m2.cod_asig = asi2.cod_asignatura group by asi2.cod_asignatura) and count(i.nrp_profesor) > 1
+					order by p.apellido1, p.apellido2, p.nombre; 
+				]]>
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+<!-- ATENCIÓN: 
+  A partir de aquí a elegir solo  1 para hacer
+-->
+		<query id="12" peso="5">
+			<descq>
+	             Hallar descripcion de asignatura, nombre y  apellidos de profesor, descripcion de asignatura y nota minima, pero solo  de aquellos profesores 
+que han calificado con esa mínima nota (alguna vez) en cada asignatura. Muestra descripcion de asignatura, nombre, apellidos. Ordenalos alfabéticamente por profesor, descripcion y nota.Incluye solo
+los que sean mayores de 48 años, incluye duplicados si existen. 
+			</descq>
+			<resppropo>
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="13" peso="5">
+			<descq>
+	           Hallar para cada asignatura la descripcion de la asignatura nombre y apellidos y edad en años (como edad) del/los alumno/s de mayor edad matriculado/s en esa asignatura. Ordenalos alfabéticamente por alumno y por edad de menor a mayor. Incluye solo los que sean menores de 29 años. SIN INCLUIR DUPLICADOS. Ayuda: 20, 1 alumno.
+			</descq>
+			<resppropo>
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+		<query id="14" peso="5">
+			<descq>
+                 Hallar para cada departamento, nombre de departamento, nombre, apellidos del/los profesores que hayan calificado 
+alguna vez alumnos con la mínima nota para ese departamento. Quita los duplicados.Ordenalo alfabéticamente por profesor.
+			</descq>
+			<resppropo>
+				<![CDATA[
+					select distinct d.nombre, p.nombre, p.apellido1, p.apellido2
+					from departamento d inner join profesor p on p.cod_departamento = d.cod_departamento 
+					inner join imparte i on i.nrp_profesor = p.nrp 
+					inner join asignatura asi on asi.cod_asignatura = i.cod_asig 
+					inner join matricula m on m.cod_asig = asi.cod_asignatura 
+					group by d.cod_departamento
+					having min(m.nota) < any(select p2.nrp from profesor p2 inner join imparte i2 on i2.nrp_profesor = p2.nrp 
+									inner join departamento d2 on d2.cod_departamento = p2.cod_departamento 
+									inner join asignatura asi2 on asi2.cod_asignatura = i2.cod_asig
+									inner join matricula m2 on m2.cod_asig = asi2.cod_asignatura 
+									where d2.cod_departamento = d.cod_departamento)
+					order by p.apellido1, p.apellido2, p.nombre;
+				]]>
+			</resppropo>
+			<respcorr>
+			</respcorr>
+			<gradeq></gradeq>
+			<feedback></feedback>
+		</query>
+	</consultas> 
+</relacionsql>
